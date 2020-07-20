@@ -1,6 +1,7 @@
 package com.mistatistic.webhookbot.appconfig;
 
 import com.mistatistic.webhookbot.MilStatisticBot;
+import com.mistatistic.webhookbot.services.MilByAPI;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -15,6 +16,7 @@ public class BotConfig {
     private String userName;
     private String botToken;
     private String webhookPath;
+    private String urlAPI;
 
     @Bean
     public MilStatisticBot milStatisticBot() {
@@ -23,7 +25,17 @@ public class BotConfig {
         bot.setUserName(userName);
         bot.setBotToken(botToken);
         bot.setWebhookPath(webhookPath);
+        bot.setMilByAPI(milByAPI());
+        bot.setHomes(milByAPI());
 
         return bot;
     }
+
+    @Bean
+    public MilByAPI milByAPI() {
+        MilByAPI mil = new MilByAPI();
+        mil.setUrlAPI(urlAPI);
+        return mil;
+    }
+
 }
