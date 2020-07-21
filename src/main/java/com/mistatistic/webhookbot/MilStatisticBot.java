@@ -14,11 +14,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class MilStatisticBot extends TelegramWebhookBot {
     private String userName;
@@ -34,12 +31,11 @@ public class MilStatisticBot extends TelegramWebhookBot {
         if (update.hasCallbackQuery()) {
             Long chatId = update.getCallbackQuery().getMessage().getChatId();
             TelegramUser user = getUserByChatId(chatId);
-            if (user!=null && user.getState() == UserState.START) {
+            if (user!=null && user.getState() == UserState.RUN) {
                 try {
                     user.changeState(UserState.ONSEARCHING);
                     execute(new SendMessage(chatId, "Вы подписались на уведомления"));
                     updateHomes(chatId, address, user);
-
                 }
                 catch (TelegramApiRequestException e) {
                     onWebhookUpdateReceived(update);
@@ -54,9 +50,9 @@ public class MilStatisticBot extends TelegramWebhookBot {
             try {
                 if (!address.equals("/start")) {
                     TelegramUser user = getUserByChatId(chatId);
-                    if (user!=null && user.getState() == UserState.START) {
+                    if (user!=null && (user.getState() == UserState.START ||user.getState() == UserState.RUN)) {
                         execute(sendButton(chatId).setText(findHomes(address)));
-                        //user.changeState(UserState.RUN);
+                        user.changeState(UserState.RUN);
                         user.setHomes(milByAPI.findByAddress(address));
                     }
                 } else {
