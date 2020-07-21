@@ -46,12 +46,12 @@ public class MilStatisticBot extends TelegramWebhookBot {
         }
         if (update.hasMessage()) {
             Long chatId = update.getMessage().getChatId();
-            address = update.getMessage().getText();
             try {
                 if (!address.equals("/start")) {
+                    address = update.getMessage().getText();
                     TelegramUser user = getUserByChatId(chatId);
                     if (user!=null && (user.getState() == UserState.START ||user.getState() == UserState.RUN)) {
-                        execute(sendButton(chatId).setText(findHomes(address)));
+                        execute(sendButton(chatId).setText(findHomes(address, milByAPI.getHomes())));
                         user.changeState(UserState.RUN);
                         user.setHomes(milByAPI.findByAddress(address));
                     }
@@ -78,7 +78,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
         return null;
     }
 
-    private String findHomes(String address) {
+    private String findHomes(String address, List<Home> homes) {
         StringBuilder text = new StringBuilder();
         List<Home> selectedHomes = new ArrayList<>(homes);
         selectedHomes.removeIf(o -> !o.getAddress().contains(address));
@@ -109,22 +109,18 @@ public class MilStatisticBot extends TelegramWebhookBot {
     }
 
     private void updateHomes(Long chatId, String address, TelegramUser user) {
-        if (user!= null) {
+        if (user != null) {
             Thread thread = new Thread(() -> {
-                Updater updater = new Updater(homes, address);
+                Updater updater = new Updater(homes);
                 while (true) {
-                    if (updater.hasHomes()) {
+                    if (updater.getHomes() != null) {
                         try {
-                            execute(new SendMessage(chatId, findHomes(address)));
+                            List<Home> currentHomes = updater.getHomes();
+                            execute(new SendMessage(chatId, findHomes(address, currentHomes)));
                         } catch (TelegramApiException e) {
                             e.printStackTrace();
                         }
-                    } else {
-                        try {
-                            execute(new SendMessage(chatId, "Нет обновлений "));
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
+
                     }
                 }
             });
