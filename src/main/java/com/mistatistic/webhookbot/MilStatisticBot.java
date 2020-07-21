@@ -34,7 +34,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
         if (update.hasCallbackQuery()) {
             Long chatId = update.getCallbackQuery().getMessage().getChatId();
             TelegramUser user = getUserByChatId(chatId);
-            if (user!=null && user.getState() == UserState.RUN) {
+            if (user!=null && user.getState() == UserState.START) {
                 try {
                     user.changeState(UserState.ONSEARCHING);
                     execute(new SendMessage(chatId, "Вы подписались на уведомления"));
@@ -56,7 +56,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
                     TelegramUser user = getUserByChatId(chatId);
                     if (user!=null && user.getState() == UserState.START) {
                         execute(sendButton(chatId).setText(findHomes(address)));
-                        user.changeState(UserState.RUN);
+                        //user.changeState(UserState.RUN);
                         user.setHomes(milByAPI.findByAddress(address));
                     }
                 } else {
