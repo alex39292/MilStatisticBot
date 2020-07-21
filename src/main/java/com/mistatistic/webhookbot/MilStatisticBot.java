@@ -116,8 +116,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
                 while (true) {
                     if (updater.getHomes() != null) {
                         try {
-                            List<Home> currentHomes = updater.getHomes();
-                            execute(new SendMessage(chatId, findHomes(address, currentHomes)));
+                            execute(new SendMessage(chatId, findHomes(address, updater.getHomes())));
                         } catch (TelegramApiException e) {
                             e.printStackTrace();
                         }
