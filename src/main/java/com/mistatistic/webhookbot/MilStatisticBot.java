@@ -46,9 +46,10 @@ public class MilStatisticBot extends TelegramWebhookBot {
         }
         if (update.hasMessage()) {
             Long chatId = update.getMessage().getChatId();
+            String text = update.getMessage().getText();
             try {
-                if (!address.equals("/start")) {
-                    address = update.getMessage().getText();
+                if (!text.equals("/start")) {
+                    address = text;
                     TelegramUser user = getUserByChatId(chatId);
                     if (user!=null && (user.getState() == UserState.START ||user.getState() == UserState.RUN)) {
                         execute(sendButton(chatId).setText(findHomes(address, milByAPI.getHomes())));
