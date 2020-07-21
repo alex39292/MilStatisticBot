@@ -12,10 +12,13 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.Objects;
+import java.util.logging.Logger;
 
 public class MilStatisticBot extends TelegramWebhookBot {
     private String userName;
@@ -31,15 +34,18 @@ public class MilStatisticBot extends TelegramWebhookBot {
         if (update.hasCallbackQuery()) {
             Long chatId = update.getCallbackQuery().getMessage().getChatId();
             TelegramUser user = getUserByChatId(chatId);
-            try {
-                Objects.requireNonNull(user).setState(UserState.ONSEARCHING);
-                USERS.removeIf(o -> o.getChatId().equals(user.getChatId()));
-                USERS.add(user);
-                execute(new SendMessage(chatId, "Вы подписались на уведомления"));
-                updateHomes(chatId);
+            if (user!=null && user.getState() == UserState.RUN) {
+                try {
+                    user.changeState(UserState.ONSEARCHING);
+                    execute(new SendMessage(chatId, "Вы подписались на уведомления"));
+                    updateHomes(chatId, address, user);
 
-            } catch (TelegramApiException e) {
-                System.out.println(e.getMessage());
+                }
+                catch (TelegramApiRequestException e) {
+                    onWebhookUpdateReceived(update);
+                } catch (TelegramApiException e) {
+                    System.out.println(e.getMessage());
+                }
             }
         }
         if (update.hasMessage()) {
@@ -48,8 +54,9 @@ public class MilStatisticBot extends TelegramWebhookBot {
             try {
                 if (!address.equals("/start")) {
                     TelegramUser user = getUserByChatId(chatId);
-                    if (Objects.requireNonNull(user).getState() == UserState.START) {
+                    if (user!=null && user.getState() == UserState.START) {
                         execute(sendButton(chatId).setText(findHomes(address)));
+                        user.changeState(UserState.RUN);
                         user.setHomes(milByAPI.findByAddress(address));
                     }
                 } else {
@@ -105,22 +112,28 @@ public class MilStatisticBot extends TelegramWebhookBot {
                 .setReplyMarkup(new InlineKeyboardMarkup().setKeyboard(keys));
     }
 
-    private void updateHomes(Long chatId) {
-        Thread thread = new Thread(() -> {
-            Updater updater = new Updater(homes);
-            while (true) {
-                if (updater.hasHomes()) {
-                    try {
-                        execute(new SendMessage(chatId, findHomes(address)));
-                    } catch (TelegramApiException e) {
-                        e.printStackTrace();
+    private void updateHomes(Long chatId, String address, TelegramUser user) {
+        if (user!= null) {
+            Thread thread = new Thread(() -> {
+                Updater updater = new Updater(homes, address);
+                while (true) {
+                    if (updater.hasHomes()) {
+                        try {
+                            execute(new SendMessage(chatId, findHomes(address)));
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        try {
+                            execute(new SendMessage(chatId, "Нет обновлений "));
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
                     }
-                } else {
-                    System.out.println("hasHomes returns false");
                 }
-            }
-        });
-        thread.start();
+            });
+            thread.start();
+        }
     }
 
     @Override

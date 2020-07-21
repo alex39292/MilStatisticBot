@@ -13,7 +13,7 @@ import java.util.List;
 
 @Setter
 public class MilByAPI {
-    private String urlAPI;
+    private String urlAPI = "https://extraction.import.io/query/extractor/378ea545-41bc-49db-bb0f-9bd1dc7bc631?_apikey=3846c433b73b444794f33009628bdc05bd2420c7762751d18a7005408e52d8ac36de116c7b4e55638c93b34c8c59e9b9e58340b82dbf217b3c57b75a2e3db9a002be0991bc15a618853f3fa246347042&url=https%3A%2F%2Fwww.mil.by%2Fru%2Fhousing%2Fcommerc%2F";
 
     private List<String> getJson() {
         try {

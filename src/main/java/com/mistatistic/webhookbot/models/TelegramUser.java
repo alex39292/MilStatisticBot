@@ -11,4 +11,8 @@ class TelegramUser {
     private String cityName;
     private UserState state;
     private List<Home> homes;
+
+    public void changeState(UserState state) {
+        this.setState(state);
+    }
 }

@@ -16,7 +16,6 @@ public class BotConfig {
     private String userName;
     private String botToken;
     private String webhookPath;
-    private String urlAPI;
 
     @Bean
     public MilStatisticBot milStatisticBot() {
@@ -33,9 +32,7 @@ public class BotConfig {
 
     @Bean
     public MilByAPI milByAPI() {
-        MilByAPI mil = new MilByAPI();
-        mil.setUrlAPI(urlAPI);
-        return mil;
+        return new MilByAPI();
     }
 
 }
