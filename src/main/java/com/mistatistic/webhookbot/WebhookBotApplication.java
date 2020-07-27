@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class WebhookBotApplication {
 
 	public static void main(String[] args) {
+
 		SpringApplication.run(WebhookBotApplication.class, args);
 	}
 
