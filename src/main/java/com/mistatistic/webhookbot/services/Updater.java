@@ -16,8 +16,7 @@ public class Updater {
     }
 
     private boolean hasHomes() {
-        MilByAPI milByAPI = new MilByAPI();
-        currentHomes = milByAPI.getHomes();
+        currentHomes = Parser.getHomes();
         try {
             Date date = new Date();
             SimpleDateFormat formatForDateNow = new SimpleDateFormat("mm");

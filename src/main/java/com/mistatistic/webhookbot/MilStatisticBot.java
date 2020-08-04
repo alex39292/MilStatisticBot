@@ -3,7 +3,7 @@ package com.mistatistic.webhookbot;
 import com.mistatistic.webhookbot.models.Home;
 import com.mistatistic.webhookbot.models.TelegramUser;
 import com.mistatistic.webhookbot.models.UserState;
-import com.mistatistic.webhookbot.services.MilByAPI;
+import com.mistatistic.webhookbot.services.Parser;
 import com.mistatistic.webhookbot.services.Updater;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -22,7 +22,6 @@ public class MilStatisticBot extends TelegramWebhookBot {
     private String botToken;
     private String webhookPath;
     private static final List<TelegramUser> USERS = new ArrayList<>();
-    private MilByAPI milByAPI;
     private List<Home> homes;
     private String address;
 
@@ -35,7 +34,6 @@ public class MilStatisticBot extends TelegramWebhookBot {
                 try {
                     user.changeState(UserState.ONSEARCHING);
                     execute(new SendMessage(chatId, "Вы подписались на уведомления"));
-                    System.out.println("User submitted " + user.getCityName());
                     updateHomes(chatId, address, user);
                 }
                 catch (TelegramApiRequestException e) {
@@ -50,20 +48,18 @@ public class MilStatisticBot extends TelegramWebhookBot {
             String text = update.getMessage().getText();
             try {
                 if (!text.equals("/start")) {
-                    System.out.println("Update received " + text);
                     address = text;
                     TelegramUser user = getUserByChatId(chatId);
                     if (user!=null && (user.getState() == UserState.START ||user.getState() == UserState.RUN)) {
                         execute(sendButton(chatId).setText(findHomes(address, homes)));
                         user.changeState(UserState.RUN);
                         user.setCityName(address);
-                        user.setHomes(milByAPI.findByAddress(address));
+                        user.setHomes(Parser.findByAddress(address));
                     }
                 } else {
                     TelegramUser user = new TelegramUser(chatId, update.getMessage().getChat().getUserName());
                     user.setState(UserState.START);
                     USERS.add(user);
-                    System.out.println("Start new user " + user.getChatId());
                     execute(new SendMessage(chatId, "Введите город. Например: Минск"));
                 }
             } catch (TelegramApiException e) {
@@ -160,11 +156,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
         this.webhookPath = webhookPath;
     }
 
-    public void setMilByAPI(MilByAPI milByAPI) {
-        this.milByAPI = milByAPI;
-    }
-
-    public void setHomes(MilByAPI milByAPI) {
-        this.homes = milByAPI.getHomes();
+    public void setHomes() {
+        this.homes = Parser.getHomes();
     }
 }
