@@ -60,7 +60,7 @@ public class Parser {
         parseHtml();
         List<Home> homes = getHomes();
         if (homes != null) {
-            homes.removeIf(o -> !o.getAddress().contains(address));
+            homes.removeIf(o -> !o.getAddress().contains("г." + address));
         }
         return homes;
     }
