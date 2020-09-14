@@ -18,13 +18,10 @@ public class BotConfig {
 
     @Bean
     public MilStatisticBot milStatisticBot() {
-
         MilStatisticBot bot = new MilStatisticBot();
         bot.setUserName(userName);
         bot.setBotToken(botToken);
         bot.setWebhookPath(webhookPath);
-        bot.setHomes();
-
         return bot;
     }
 }

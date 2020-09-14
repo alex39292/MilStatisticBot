@@ -3,6 +3,7 @@ package com.mistatistic.webhookbot;
 import com.mistatistic.webhookbot.models.Home;
 import com.mistatistic.webhookbot.models.TelegramUser;
 import com.mistatistic.webhookbot.models.UserState;
+import com.mistatistic.webhookbot.services.HomeSelector;
 import com.mistatistic.webhookbot.services.Parser;
 import com.mistatistic.webhookbot.services.Updater;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
@@ -12,10 +13,12 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class MilStatisticBot extends TelegramWebhookBot {
     private String userName;
@@ -23,80 +26,80 @@ public class MilStatisticBot extends TelegramWebhookBot {
     private String webhookPath;
     private static final List<TelegramUser> USERS = new ArrayList<>();
     private List<Home> homes;
-    private String address;
 
     @Override
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
         if (update.hasCallbackQuery()) {
-            Long chatId = update.getCallbackQuery().getMessage().getChatId();
-            TelegramUser user = getUserByChatId(chatId);
-            if (user!=null && user.getState() == UserState.RUN) {
-                try {
-                    user.changeState(UserState.ONSEARCHING);
-                    execute(new SendMessage(chatId, "Вы подписались на уведомления"));
-                    updateHomes(chatId, address, user);
-                }
-                catch (TelegramApiRequestException e) {
-                    onWebhookUpdateReceived(update);
-                } catch (TelegramApiException e) {
-                    System.out.println(e.getMessage());
-                }
-            }
+            submitOnUpdates(update);
         }
         if (update.hasMessage()) {
-            Long chatId = update.getMessage().getChatId();
-            String text = update.getMessage().getText();
+            processMessage(update);
+        }
+        return null;
+    }
+
+    private void submitOnUpdates(Update update) {
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        TelegramUser user = getUserByChatId(chatId);
+        if (user.getState() == UserState.RUN) {
             try {
-                if (!text.equals("/start")) {
-                    address = text;
-                    TelegramUser user = getUserByChatId(chatId);
-                    if (user!=null && (user.getState() == UserState.START ||user.getState() == UserState.RUN)) {
-                        execute(sendButton(chatId).setText(findHomes(address, homes)));
-                        user.changeState(UserState.RUN);
-                        user.setCityName(address);
-                        user.setHomes(Parser.findByAddress(address));
-                    }
-                } else {
-                    TelegramUser user = new TelegramUser(chatId, update.getMessage().getChat().getUserName());
-                    user.setState(UserState.START);
-                    USERS.add(user);
-                    execute(new SendMessage(chatId, "Введите город. Например: Минск"));
-                }
+                user.setState(UserState.ONSEARCHING);
+                execute(new SendMessage(chatId, "Вы подписались на уведомления"));
+                updateHomes(user);
             } catch (TelegramApiException e) {
                 System.out.println(e.getMessage());
             }
         }
-        return null;
+    }
+
+    private void processMessage(Update update) {
+        Long chatId = update.getMessage().getChatId();
+        String message = update.getMessage().getText();
+        try {
+            if (isPressedStart(message)) {
+                createAndAddUser(update);
+                execute(new SendMessage(chatId, "Введите город. Например: Минск"));
+            } else {
+                TelegramUser user = getUserByChatId(chatId);
+                if (user.getState() == UserState.START || user.getState() == UserState.RUN) {
+                    setHomes();
+                    addInfoIntoUser(user, message);
+                    execute(sendButton(chatId).setText(writeMessageWithHomes(message)));
+                }
+            }
+        } catch (TelegramApiException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private boolean isPressedStart(String message) {
+        return message.equals("/start");
+    }
+
+    private void createAndAddUser(Update update) {
+        TelegramUser user = new TelegramUser(update.getMessage().getChatId(), update.getMessage().getChat().getUserName());
+        user.setState(UserState.START);
+        USERS.add(user);
+    }
+
+    private void addInfoIntoUser(TelegramUser user, String address) {
+        user.setState(UserState.RUN);
+        user.setCityName(address);
+        user.setHomes(new HomeSelector(address, homes).selectHomes());
     }
 
     private TelegramUser getUserByChatId(Long chatId) {
         for (TelegramUser user :
                 USERS) {
-            if (user.getChatId().equals(chatId)) {
+            if (user != null && user.getChatId().equals(chatId)) {
                 return user;
             }
         }
-        return null;
+        throw new NullPointerException("No target user in user's list");
     }
 
-    private String findHomes(String address, List<Home> homes) {
-        StringBuilder text = new StringBuilder();
-        List<Home> selectedHomes = new ArrayList<>(homes);
-        selectedHomes.removeIf(o -> !o.getAddress().contains(address));
-
-        if (selectedHomes.isEmpty()) {
-            text.append("Нет квартир в г.").append(address);
-        } else {
-            for (Home home :
-                    selectedHomes) {
-                text.append(home.getAddress()).append("\n")
-                        .append("Комнат: ").append(home.getFlats()).append("\n")
-                        .append("Этаж: ").append(home.getFloor()).append("\n")
-                        .append("Площадь: ").append(home.getArea()).append("\n")
-                        .append("Срок подачи документов: ").append(home.getDeadline()).append("\n\n");
-            }
-        }
-        return text.toString();
+    private String writeMessageWithHomes(String address) {
+        return new HomeSelector(address, homes).buildMessage();
     }
 
     private SendMessage sendButton(Long chatId) {
@@ -109,23 +112,35 @@ public class MilStatisticBot extends TelegramWebhookBot {
                 .setReplyMarkup(new InlineKeyboardMarkup().setKeyboard(keys));
     }
 
-    private void updateHomes(Long chatId, String address, TelegramUser user) {
-        if (user != null) {
-            Thread thread = new Thread(() -> {
-                Updater updater = new Updater(homes);
-                List<Home> currentHomes = updater.getHomes();
-                while (true) {
-                    if (currentHomes != null) {
-                        try {
-                            execute(new SendMessage(chatId, findHomes(address, currentHomes)));
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
-
+    private void updateHomes(TelegramUser user) {
+        new Thread(() -> {
+            while (user.getState().equals(UserState.ONSEARCHING)) {
+                List<Home> resultHomes = new Updater(homes).getUpdatedHomes();
+                System.out.println(resultHomes);
+                if (resultHomes != null) {
+                    try {
+                        homes = resultHomes;
+                        execute(new SendMessage(user.getChatId(), writeMessageWithHomes(user.getCityName())));
+                    } catch (TelegramApiException e) {
+                        user.setState(UserState.START);
+                        Thread.currentThread().interrupt();
+                        e.printStackTrace();
                     }
                 }
-            });
-            thread.start();
+                sleepInLoop();
+            }
+        })
+                .start();
+    }
+
+    private void sleepInLoop() {
+        try {
+            Date date = new Date();
+            SimpleDateFormat formatForDateNow = new SimpleDateFormat("mm");
+            TimeUnit.MINUTES.sleep(61 - Integer.parseInt(formatForDateNow.format(date)));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -158,5 +173,9 @@ public class MilStatisticBot extends TelegramWebhookBot {
 
     public void setHomes() {
         this.homes = Parser.getHomes();
+    }
+
+    public List<TelegramUser> getUsers() {
+        return USERS;
     }
 }

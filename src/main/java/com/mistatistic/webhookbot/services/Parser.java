@@ -17,14 +17,11 @@ public class Parser {
     private static List<HtmlElement> flats;
     private static List<HtmlElement> area;
     private static List<HtmlElement> deadLine;
-    private static List<Home> homes;
+    private static WebClient client;
 
     private static void parseHtml() {
-        WebClient client = new WebClient();
-        client.getOptions().setCssEnabled(false);
-        client.getOptions().setJavaScriptEnabled(false);
-
         try {
+            setWebClientOptions();
             HtmlPage page = client.getPage(URL);
             id = page.getByXPath(XPATH + "/td[1]/p");
             address = page.getByXPath(XPATH + "/td[2]/p[1]");
@@ -37,13 +34,18 @@ public class Parser {
         }
     }
 
+    private static void setWebClientOptions() {
+        client = new WebClient();
+        client.getOptions().setCssEnabled(false);
+        client.getOptions().setJavaScriptEnabled(false);
+    }
+
     public static List<Home> getHomes() {
+        List<Home> homes = new ArrayList<>();
         parseHtml();
-        homes = new ArrayList<>();
-        if (!(id.isEmpty() & address.isEmpty() & floor.isEmpty() & flats.isEmpty() & area.isEmpty() & deadLine.isEmpty())) {
-            Home home;
+        if (isParsedFieldsNotEmpty()) {
             for (int i = 0; i < id.size(); i++) {
-                home = new Home();
+                Home home = new Home();
                 home.setId(id.get(i).asText());
                 home.setAddress(address.get(i).asText());
                 home.setFloor(floor.get(i).asText());
@@ -56,12 +58,7 @@ public class Parser {
         return homes;
     }
 
-    public static List<Home> findByAddress(String address) {
-        parseHtml();
-        List<Home> homes = getHomes();
-        if (homes != null) {
-            homes.removeIf(o -> !o.getAddress().contains("г." + address));
-        }
-        return homes;
+    private static boolean isParsedFieldsNotEmpty() {
+        return !(id.isEmpty() & address.isEmpty() & floor.isEmpty() & flats.isEmpty() & area.isEmpty() & deadLine.isEmpty());
     }
 }
