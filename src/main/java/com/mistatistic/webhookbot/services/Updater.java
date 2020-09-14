@@ -12,11 +12,10 @@ public class Updater {
 
     public Updater(List<Home> homes) {
         this.homes = homes;
-        this.currentHomes = homes;
     }
 
     public List<Home> getUpdatedHomes() {
-        //currentHomes = Parser.getHomes();
-        return !currentHomes.containsAll(homes) ? null : currentHomes;
+        currentHomes = Parser.getHomes();
+        return currentHomes.containsAll(homes) ? null : currentHomes;
     }
 }

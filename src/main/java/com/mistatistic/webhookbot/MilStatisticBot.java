@@ -116,7 +116,6 @@ public class MilStatisticBot extends TelegramWebhookBot {
         new Thread(() -> {
             while (user.getState().equals(UserState.ONSEARCHING)) {
                 List<Home> resultHomes = new Updater(homes).getUpdatedHomes();
-                System.out.println(resultHomes);
                 if (resultHomes != null) {
                     try {
                         homes = resultHomes;
