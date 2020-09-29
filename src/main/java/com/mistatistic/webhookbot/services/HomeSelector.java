@@ -4,6 +4,7 @@ import com.mistatistic.webhookbot.models.Home;
 import lombok.Setter;
 
 import java.util.List;
+import static org.apache.commons.lang3.StringUtils.*;
 
 @Setter
 public class HomeSelector {
@@ -34,7 +35,7 @@ public class HomeSelector {
     }
 
     public List<Home> selectHomes() {
-        homes.removeIf(o -> !o.getAddress().contains(address));
+        homes.removeIf(o -> !containsIgnoreCase(o.getAddress(),address));
         return homes;
     }
 }
