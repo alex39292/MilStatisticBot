@@ -1,11 +1,13 @@
 package com.mistatistic.webhookbot;
 
 import com.mistatistic.webhookbot.models.Home;
-import com.mistatistic.webhookbot.models.TelegramUser;
+import com.mistatistic.webhookbot.models.User;
 import com.mistatistic.webhookbot.models.UserState;
 import com.mistatistic.webhookbot.services.HomeSelector;
 import com.mistatistic.webhookbot.services.Parser;
 import com.mistatistic.webhookbot.services.Updater;
+import com.mistatistic.webhookbot.services.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -24,8 +26,9 @@ public class MilStatisticBot extends TelegramWebhookBot {
     private String userName;
     private String botToken;
     private String webhookPath;
-    private static final List<TelegramUser> USERS = new ArrayList<>();
     private List<Home> homes;
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
@@ -40,12 +43,14 @@ public class MilStatisticBot extends TelegramWebhookBot {
 
     private void submitOnUpdates(Update update) {
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
-        TelegramUser user = getUserByChatId(chatId);
-        if (user.getState() == UserState.RUN) {
+        User userBD = getUserByChatId(chatId);
+        if (userBD.getState().equals("RUN")) {
             try {
-                user.setState(UserState.ONSEARCHING);
+                userBD.setState(UserState.ONSEARCHING.toString());
+                userRepository.save(userBD);
                 execute(new SendMessage(chatId, "Вы подписались на уведомления"));
-                updateHomes(user);
+                updateHomes(userBD);
+                System.out.println("Updater started");
             } catch (TelegramApiException e) {
                 System.out.println(e.getMessage());
             }
@@ -57,13 +62,15 @@ public class MilStatisticBot extends TelegramWebhookBot {
         String message = update.getMessage().getText();
         try {
             if (isPressedStart(message)) {
+                System.out.println("START was pressed");
                 createAndAddUser(update);
                 execute(new SendMessage(chatId, "Введите город. Например: Минск"));
             } else {
-                TelegramUser user = getUserByChatId(chatId);
-                if (user.getState() == UserState.START || user.getState() == UserState.RUN) {
+                System.out.println("Message is " + message);
+                User userBD = getUserByChatId(chatId);
+                if (userBD.getState().equals("START") || userBD.getState().equals("RUN")) {
                     setHomes();
-                    addInfoIntoUser(user, message);
+                    addInfoIntoUser(userBD, message);
                     execute(sendButton(chatId).setText(writeMessageWithHomes(message)));
                 }
             }
@@ -77,23 +84,23 @@ public class MilStatisticBot extends TelegramWebhookBot {
     }
 
     private void createAndAddUser(Update update) {
-        TelegramUser user = new TelegramUser(update.getMessage().getChatId(), update.getMessage().getChat().getUserName());
-        user.setState(UserState.START);
-        USERS.add(user);
+        User userBD = new User();
+        userBD.setId(update.getMessage().getChatId());
+        userBD.setUserName(update.getMessage().getChat().getUserName());
+        userBD.setState(UserState.START.toString());
+        userRepository.save(userBD);
     }
 
-    private void addInfoIntoUser(TelegramUser user, String address) {
-        user.setState(UserState.RUN);
-        user.setCityName(address);
-        user.setHomes(new HomeSelector(address, homes).selectHomes());
+    private void addInfoIntoUser(User userBD, String address) {
+        userBD.setState(UserState.RUN.toString());
+        userBD.setCity(address);
+        userRepository.save(userBD);
+        System.out.println("user was updated. City: " + userBD.getCity());
     }
 
-    private TelegramUser getUserByChatId(Long chatId) {
-        for (TelegramUser user :
-                USERS) {
-            if (user != null && user.getChatId().equals(chatId)) {
-                return user;
-            }
+    private User getUserByChatId(Long chatId) {
+        if (userRepository.findById(chatId).isPresent()) {
+            return userRepository.findById(chatId).get();
         }
         throw new NullPointerException("No target user in user's list");
     }
@@ -112,16 +119,16 @@ public class MilStatisticBot extends TelegramWebhookBot {
                 .setReplyMarkup(new InlineKeyboardMarkup().setKeyboard(keys));
     }
 
-    private void updateHomes(TelegramUser user) {
+    private void updateHomes(User userBD) {
         new Thread(() -> {
-            while (user.getState().equals(UserState.ONSEARCHING)) {
+            while (userBD.getState().equals("ONSEARCHING")) {
                 List<Home> resultHomes = new Updater(homes).getUpdatedHomes();
                 if (resultHomes != null) {
                     try {
                         homes = resultHomes;
-                        execute(new SendMessage(user.getChatId(), writeMessageWithHomes(user.getCityName())));
+                        execute(new SendMessage(userBD.getId(), writeMessageWithHomes(userBD.getCity())));
                     } catch (TelegramApiException e) {
-                        user.setState(UserState.START);
+                        userBD.setState("START");
                         Thread.currentThread().interrupt();
                         e.printStackTrace();
                     }
@@ -171,10 +178,8 @@ public class MilStatisticBot extends TelegramWebhookBot {
     }
 
     public void setHomes() {
-        this.homes = Parser.getHomes();
-    }
-
-    public List<TelegramUser> getUsers() {
-        return USERS;
+        Parser parser = new Parser();
+        parser.addHomesIntoDB();
+        this.homes = parser.getHomes();
     }
 }

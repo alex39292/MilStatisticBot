@@ -4,6 +4,8 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.mistatistic.webhookbot.models.Home;
+import com.mistatistic.webhookbot.models.HomeDB;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,15 +13,17 @@ import java.util.List;
 public class Parser {
     private static final String URL = "https://www.mil.by/ru/housing/commerc/";
     private static final String XPATH = "/html/body/div/div[1]/div/div[1]/div/div/div/div/main/div/div/div[2]/table/tbody/tr[position() > 2]";
-    private static List<HtmlElement> id;
-    private static List<HtmlElement> address;
-    private static List<HtmlElement> floor;
-    private static List<HtmlElement> flats;
-    private static List<HtmlElement> area;
-    private static List<HtmlElement> deadLine;
+    private List<HtmlElement> id;
+    private List<HtmlElement> address;
+    private List<HtmlElement> floor;
+    private List<HtmlElement> flats;
+    private List<HtmlElement> area;
+    private List<HtmlElement> deadLine;
     private static WebClient client;
+    @Autowired
+    private static HomeRepository homeRepo;
 
-    private static void parseHtml() {
+    private void parseHtml() {
         try {
             setWebClientOptions();
             HtmlPage page = client.getPage(URL);
@@ -40,7 +44,23 @@ public class Parser {
         client.getOptions().setJavaScriptEnabled(false);
     }
 
-    public static List<Home> getHomes() {
+    public void addHomesIntoDB() {
+        parseHtml();
+        if (isParsedFieldsNotEmpty()) {
+            for (int i = 0; i < id.size(); i++) {
+                HomeDB home = new HomeDB();
+                home.setId(Integer.valueOf(id.get(i).asText()));
+                home.setAddress(address.get(i).asText());
+                home.setFloor(floor.get(i).asText());
+                home.setFlats(flats.get(i).asText());
+                home.setArea(area.get(i).asText());
+                home.setDeadline(deadLine.get(i).asText());
+                homeRepo.save(home);
+            }
+        }
+    }
+
+    public List<Home> getHomes() {
         List<Home> homes = new ArrayList<>();
         parseHtml();
         if (isParsedFieldsNotEmpty()) {
@@ -58,7 +78,7 @@ public class Parser {
         return homes;
     }
 
-    private static boolean isParsedFieldsNotEmpty() {
+    private boolean isParsedFieldsNotEmpty() {
         return !(id.isEmpty() & address.isEmpty() & floor.isEmpty() & flats.isEmpty() & area.isEmpty() & deadLine.isEmpty());
     }
 }

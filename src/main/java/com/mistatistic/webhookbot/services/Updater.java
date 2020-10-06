@@ -15,7 +15,8 @@ public class Updater {
     }
 
     public List<Home> getUpdatedHomes() {
-        currentHomes = Parser.getHomes();
+        Parser parser = new Parser();
+        currentHomes = parser.getHomes();
         return currentHomes.containsAll(homes) ? null : currentHomes;
     }
 }
