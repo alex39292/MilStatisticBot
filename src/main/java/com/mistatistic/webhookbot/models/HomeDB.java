@@ -9,8 +9,7 @@ import java.io.Serializable;
 
 @Entity
 @Table(name = "homes")
-public @Data
-class HomeDB implements Serializable {
+public @Data class HomeDB implements Serializable {
     @Id
     private Integer id;
     private String address;

@@ -3,10 +3,7 @@ package com.mistatistic.webhookbot;
 import com.mistatistic.webhookbot.models.Home;
 import com.mistatistic.webhookbot.models.User;
 import com.mistatistic.webhookbot.models.UserState;
-import com.mistatistic.webhookbot.services.HomeSelector;
-import com.mistatistic.webhookbot.services.Parser;
-import com.mistatistic.webhookbot.services.Updater;
-import com.mistatistic.webhookbot.services.UserRepository;
+import com.mistatistic.webhookbot.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -29,6 +26,8 @@ public class MilStatisticBot extends TelegramWebhookBot {
     private List<Home> homes;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private HomeRepository homeRepository;
 
     @Override
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
@@ -106,7 +105,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
     }
 
     private String writeMessageWithHomes(String address) {
-        return new HomeSelector(address, homes).buildMessage();
+        return new HomeSelectorFromDB(address, homeRepository).buildMessage();
     }
 
     private SendMessage sendButton(Long chatId) {
@@ -122,7 +121,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
     private void updateHomes(User userBD) {
         new Thread(() -> {
             while (userBD.getState().equals("ONSEARCHING")) {
-                List<Home> resultHomes = new Updater(homes).getUpdatedHomes();
+                List<Home> resultHomes = new Updater(homes, homeRepository).getUpdatedHomes();
                 if (resultHomes != null) {
                     try {
                         homes = resultHomes;
@@ -178,8 +177,9 @@ public class MilStatisticBot extends TelegramWebhookBot {
     }
 
     public void setHomes() {
-        Parser parser = new Parser();
+        Parser parser = new Parser(homeRepository);
         parser.addHomesIntoDB();
         this.homes = parser.getHomes();
+        System.out.println("homes were updated: " + homeRepository.count());
     }
 }

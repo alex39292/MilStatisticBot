@@ -5,12 +5,12 @@ import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.mistatistic.webhookbot.models.Home;
 import com.mistatistic.webhookbot.models.HomeDB;
-import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Parser {
+public class Parser implements Serializable {
     private static final String URL = "https://www.mil.by/ru/housing/commerc/";
     private static final String XPATH = "/html/body/div/div[1]/div/div[1]/div/div/div/div/main/div/div/div[2]/table/tbody/tr[position() > 2]";
     private List<HtmlElement> id;
@@ -20,8 +20,11 @@ public class Parser {
     private List<HtmlElement> area;
     private List<HtmlElement> deadLine;
     private static WebClient client;
-    @Autowired
-    private static HomeRepository homeRepo;
+    private final HomeRepository homeRepository;
+
+    public Parser(HomeRepository homeRepository) {
+        this.homeRepository = homeRepository;
+    }
 
     private void parseHtml() {
         try {
@@ -55,7 +58,7 @@ public class Parser {
                 home.setFlats(flats.get(i).asText());
                 home.setArea(area.get(i).asText());
                 home.setDeadline(deadLine.get(i).asText());
-                homeRepo.save(home);
+                homeRepository.save(home);
             }
         }
     }

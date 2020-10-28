@@ -1,29 +1,30 @@
 package com.mistatistic.webhookbot.services;
 
-import com.mistatistic.webhookbot.models.Home;
-import lombok.Setter;
+import com.mistatistic.webhookbot.models.HomeDB;
 
+import java.util.ArrayList;
 import java.util.List;
-import static org.apache.commons.lang3.StringUtils.*;
 
-@Setter
-public class HomeSelector {
-    private String address;
-    private List<Home> homes;
+import static org.apache.commons.lang3.StringUtils.containsIgnoreCase;
 
-    public HomeSelector(String address, List<Home> homes) {
+public class HomeSelectorFromDB {
+    private final String address;
+    private final HomeRepository homeRepository;
+    private List<HomeDB> homes;
+
+    public HomeSelectorFromDB(String address, HomeRepository homeRepository) {
         this.address = address;
-        this.homes = homes;
+        this.homeRepository = homeRepository;
+        homes = getHomesFromDB();
     }
 
     public String buildMessage() {
         selectHomes();
         StringBuilder outputMessage = new StringBuilder();
-        if (homes.isEmpty()) {
+        if (homes.isEmpty())   {
             outputMessage.append("Нет квартир в г.").append(address);
         } else {
-            for (Home home :
-                    homes) {
+            for (HomeDB home : homes) {
                 outputMessage.append(home.getAddress()).append("\n")
                         .append("Комнат: ").append(home.getFlats()).append("\n")
                         .append("Этаж: ").append(home.getFloor()).append("\n")
@@ -34,8 +35,13 @@ public class HomeSelector {
         return outputMessage.toString();
     }
 
-    public List<Home> selectHomes() {
+    private void selectHomes() {
         homes.removeIf(o -> !containsIgnoreCase(o.getAddress(),address));
+    }
+
+    private List<HomeDB> getHomesFromDB() {
+        homes = new ArrayList<>();
+        homeRepository.findAll().forEach(homes :: add);
         return homes;
     }
 }

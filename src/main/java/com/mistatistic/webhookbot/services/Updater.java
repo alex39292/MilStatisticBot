@@ -9,13 +9,15 @@ import java.util.List;
 public class Updater {
     private List<Home> homes;
     private List<Home> currentHomes;
+    private final HomeRepository homeRepository;
 
-    public Updater(List<Home> homes) {
+    public Updater(List<Home> homes, HomeRepository homeRepository) {
         this.homes = homes;
+        this.homeRepository = homeRepository;
     }
 
     public List<Home> getUpdatedHomes() {
-        Parser parser = new Parser();
+        Parser parser = new Parser(homeRepository);
         currentHomes = parser.getHomes();
         return currentHomes.containsAll(homes) ? null : currentHomes;
     }
