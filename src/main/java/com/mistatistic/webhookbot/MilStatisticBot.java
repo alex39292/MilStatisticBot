@@ -23,7 +23,6 @@ public class MilStatisticBot extends TelegramWebhookBot {
     private String userName;
     private String botToken;
     private String webhookPath;
-    private List<Home> homes;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -49,7 +48,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
                 userRepository.save(userBD);
                 execute(new SendMessage(chatId, "Вы подписались на уведомления"));
                 updateHomes(userBD);
-                System.out.println("Updater started");
+                System.out.println("Updater started for user ID: " + userBD.getId());
             } catch (TelegramApiException e) {
                 System.out.println(e.getMessage());
             }
@@ -105,7 +104,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
     }
 
     private String writeMessageWithHomes(String address) {
-        return new HomeSelectorFromDB(address, homeRepository).buildMessage();
+        return new HomeSelectorFrom(address, homeRepository).buildMessage();
     }
 
     private SendMessage sendButton(Long chatId) {
@@ -121,10 +120,11 @@ public class MilStatisticBot extends TelegramWebhookBot {
     private void updateHomes(User userBD) {
         new Thread(() -> {
             while (userBD.getState().equals("ONSEARCHING")) {
-                List<Home> resultHomes = new Updater(homes, homeRepository).getUpdatedHomes();
+                List<Home> resultHomes = new Updater(homeRepository).getUpdatedHomes();
                 if (resultHomes != null) {
                     try {
-                        homes = resultHomes;
+                        homeRepository.deleteAll();
+                        resultHomes.forEach(home -> homeRepository.save(home));
                         execute(new SendMessage(userBD.getId(), writeMessageWithHomes(userBD.getCity())));
                     } catch (TelegramApiException e) {
                         userBD.setState("START");
@@ -179,7 +179,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
     public void setHomes() {
         Parser parser = new Parser(homeRepository);
         parser.addHomesIntoDB();
-        this.homes = parser.getHomes();
+        //this.homes = parser.getHomes();
         System.out.println("homes were updated: " + homeRepository.count());
     }
 }

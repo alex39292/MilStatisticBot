@@ -4,7 +4,6 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.mistatistic.webhookbot.models.Home;
-import com.mistatistic.webhookbot.models.HomeDB;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -51,7 +50,7 @@ public class Parser implements Serializable {
         parseHtml();
         if (isParsedFieldsNotEmpty()) {
             for (int i = 0; i < id.size(); i++) {
-                HomeDB home = new HomeDB();
+                Home home = new Home();
                 home.setId(Integer.valueOf(id.get(i).asText()));
                 home.setAddress(address.get(i).asText());
                 home.setFloor(floor.get(i).asText());
@@ -69,7 +68,7 @@ public class Parser implements Serializable {
         if (isParsedFieldsNotEmpty()) {
             for (int i = 0; i < id.size(); i++) {
                 Home home = new Home();
-                home.setId(id.get(i).asText());
+                home.setId(Integer.valueOf(id.get(i).asText()));
                 home.setAddress(address.get(i).asText());
                 home.setFloor(floor.get(i).asText());
                 home.setFlats(flats.get(i).asText());

@@ -2,11 +2,16 @@ package com.mistatistic.webhookbot.models;
 
 import lombok.Data;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.io.Serializable;
 
-public @Data
-class Home implements Serializable {
-    private String id;
+@Entity
+@Table(name = "homes")
+public @Data class Home implements Serializable {
+    @Id
+    private Integer id;
     private String address;
     private String floor;
     private String flats;

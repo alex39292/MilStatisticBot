@@ -11,14 +11,14 @@ public class Updater {
     private List<Home> currentHomes;
     private final HomeRepository homeRepository;
 
-    public Updater(List<Home> homes, HomeRepository homeRepository) {
-        this.homes = homes;
+    public Updater(HomeRepository homeRepository) {
         this.homeRepository = homeRepository;
     }
 
     public List<Home> getUpdatedHomes() {
         Parser parser = new Parser(homeRepository);
         currentHomes = parser.getHomes();
+        homeRepository.findAll().forEach(home -> homes.add(home));
         return currentHomes.containsAll(homes) ? null : currentHomes;
     }
 }

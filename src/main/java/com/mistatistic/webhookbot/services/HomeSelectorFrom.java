@@ -1,18 +1,18 @@
 package com.mistatistic.webhookbot.services;
 
-import com.mistatistic.webhookbot.models.HomeDB;
+import com.mistatistic.webhookbot.models.Home;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.commons.lang3.StringUtils.containsIgnoreCase;
 
-public class HomeSelectorFromDB {
+public class HomeSelectorFrom {
     private final String address;
     private final HomeRepository homeRepository;
-    private List<HomeDB> homes;
+    private List<Home> homes;
 
-    public HomeSelectorFromDB(String address, HomeRepository homeRepository) {
+    public HomeSelectorFrom(String address, HomeRepository homeRepository) {
         this.address = address;
         this.homeRepository = homeRepository;
         homes = getHomesFromDB();
@@ -24,7 +24,7 @@ public class HomeSelectorFromDB {
         if (homes.isEmpty())   {
             outputMessage.append("Нет квартир в г.").append(address);
         } else {
-            for (HomeDB home : homes) {
+            for (Home home : homes) {
                 outputMessage.append(home.getAddress()).append("\n")
                         .append("Комнат: ").append(home.getFlats()).append("\n")
                         .append("Этаж: ").append(home.getFloor()).append("\n")
@@ -39,7 +39,7 @@ public class HomeSelectorFromDB {
         homes.removeIf(o -> !containsIgnoreCase(o.getAddress(),address));
     }
 
-    private List<HomeDB> getHomesFromDB() {
+    private List<Home> getHomesFromDB() {
         homes = new ArrayList<>();
         homeRepository.findAll().forEach(homes :: add);
         return homes;
