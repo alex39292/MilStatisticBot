@@ -41,14 +41,16 @@ public class MilStatisticBot extends TelegramWebhookBot {
 
     private void submitOnUpdates(Update update) {
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
-        User userBD = getUserByChatId(chatId);
-        if (userBD.getState().equals("RUN")) {
+        User user = getUserByChatId(chatId);
+        if (user.getState().equals("RUN")) {
             try {
-                userBD.setState(UserState.ONSEARCHING.toString());
-                userRepository.save(userBD);
-                execute(new SendMessage(chatId, "Вы подписались на уведомления"));
-                updateHomes(userBD);
-                System.out.println("Updater started for user ID: " + userBD.getId());
+                //user.setState(UserState.ONSEARCHING.toString());
+                //userRepository.save(user);
+                //execute(new SendMessage(chatId, "Вы подписались на уведомления"));
+                setHomes();
+                execute(sendButton(chatId).setText(writeMessageWithHomes(user.getCity())));
+                //updateHomes(userBD);
+                System.out.println("Updated for user ID: " + user.getId());
             } catch (TelegramApiException e) {
                 System.out.println(e.getMessage());
             }
@@ -110,7 +112,7 @@ public class MilStatisticBot extends TelegramWebhookBot {
     private SendMessage sendButton(Long chatId) {
         List<InlineKeyboardButton> raw = new ArrayList<>();
         List<List<InlineKeyboardButton>> keys = new ArrayList<>();
-        raw.add(new InlineKeyboardButton().setText("Подписаться на обновление")
+        raw.add(new InlineKeyboardButton().setText("Проверить на обновление")
                 .setCallbackData("OK"));
         keys.add(raw);
         return new SendMessage().setChatId(chatId)
@@ -179,7 +181,6 @@ public class MilStatisticBot extends TelegramWebhookBot {
     public void setHomes() {
         Parser parser = new Parser(homeRepository);
         parser.addHomesIntoDB();
-        //this.homes = parser.getHomes();
         System.out.println("homes were updated: " + homeRepository.count());
     }
 }
